@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "myFlappyBird",
-    "slug": "myFlappyBird", //AwesomeProject
+    "slug": "myFlappyBird",
     "platforms": [
       "ios",
       "android",
@@ -14,6 +14,10 @@
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "android": {
+      "package": "com.yourcompany.yourappname",
+      "versionCode": 1
     },
     "updates": {
       "fallbackToCacheTimeout": 0
