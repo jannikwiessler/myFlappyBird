@@ -6,7 +6,7 @@ import Matter from 'matter-js';
 import Bird from './Bird';
 import Pipe1 from './Pipe1';
 import Floor from './floor';
-import Physics from './Physics';
+import Physics, { resetPipes, resetSpeed, tick } from './Physics';
 import Images from './assets/Images';
 // remember: there are no specific data types as strings doubles int....
 
@@ -18,7 +18,8 @@ export default class App extends Component {
 
     this.state = {
       running: true,
-    }
+      score: 0,
+      }
   }
 
   setupWorld = () => { // setupWorld is property with lambda expression: setupWorld itself becomes the method. () no paras to pass to fcn
@@ -69,13 +70,22 @@ export default class App extends Component {
       this.setState({
         running: false
       })
+    } else if (e.type === "score"){
+      this.setState({
+        score: this.state.score + 1
+      })
+    } else if (e.type === "tick"){
+      this.forceUpdate(); //just to trigger render update
     }
   }
 
   reset = () => {
+    resetPipes();
+    resetSpeed();
     this.gameEngine.swap(this.setupWorld());
     this.setState({
-      running: true
+      running: true,
+      score: 0
     });
   }
 
@@ -92,12 +102,15 @@ export default class App extends Component {
           entities = {this.entities}>
           <StatusBar hidden = {true}/>
         </GameEngine>
+        <Text style={styles.score}>{this.state.score}</Text>
         {!this.state.running && <TouchableOpacity onPress={this.reset} style={styles.fullscreenButton}>
           <View style={styles.fullScreen}>
             <Text style={styles.gameOverText}>Game Over</Text> 
+            <Text style={styles.gameOverSubText}>Try Again</Text> 
           </View>
         </TouchableOpacity>
         }
+        {(tick.counter % 500 === 490) && <View style={styles.gravityChange}></View>}
       </View>
     ) 
   }
@@ -127,6 +140,16 @@ const styles = StyleSheet.create({ // global in this app.js file (a js file is c
     left: 0,
     right: 0
   },
+  score:{
+    position: 'absolute',
+    color: 'white',
+    fontSize: 72,
+    top: 50,
+    left: Constants.MAX_WIDTH / 2 - 20,
+    textShadowColor:'#444444',
+    textShadowOffset: {width: 2, height: 2},
+    textShadowRadius: 2
+  },
   fullscreenButton: {
     position: 'absolute',
     top: 0,
@@ -146,8 +169,23 @@ const styles = StyleSheet.create({ // global in this app.js file (a js file is c
     justifyContent: 'center',
     alignItems: 'center'
   },
+  gravityChange: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    opacity: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
   gameOverText: {
     color: 'white',
     fontSize: 48
+  },
+  gameOverSubText: {
+    color: 'white',
+    fontSize: 24
   }
 });

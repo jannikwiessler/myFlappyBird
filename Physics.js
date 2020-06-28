@@ -3,16 +3,24 @@ import Constants from './Constants';
 import Pipe1 from './Pipe1';
 import Pipe2 from './Pipe2';
 
-let tick = 1;
 let pose = 1;
 let pipes = 0;
-let speed = -2;
+let speed = -2; // alternative: global.speed
+
+export const tick = {counter: 1};
 
 export const randomBeetween = (min, max) => {
     return Math.floor(Math.random() * (max - min +1) + min);
 }
+
+export const resetPipes = () => {
+    pipes = 0;
+}
   
-  
+export const resetSpeed = () => {
+    speed = -2;
+}
+
 export const generatePipes = () => {
     let topPipeHeight = randomBeetween(100, Constants.MAX_HEIGHT / 2 - 100);
     let bottomPipeHeight = Constants.MAX_HEIGHT - topPipeHeight - Constants.GAP_SIZE;
@@ -70,16 +78,16 @@ export const addPipesAtLocation = (x, world, entities) => {
 
     Matter.World.add(world, [pipe1, pipe1Top, pipe2, pipe2Top]);
 
-    entities["pipe" + (pipes + 1)] = {body: pipe1, renderer: Pipe1}
-    entities["pipe" + (pipes + 2)] = {body: pipe2, renderer: Pipe1}
-    entities["pipe" + (pipes + 1) + "Top"] = {body: pipe1Top, renderer: Pipe2}
-    entities["pipe" + (pipes + 2) + "Top"] = {body: pipe2Top, renderer: Pipe2}
+    entities["pipe" + (pipes + 1)] = {body: pipe1, renderer: Pipe1, scored: false}
+    entities["pipe" + (pipes + 2)] = {body: pipe2, renderer: Pipe1, scored: false}
+    entities["pipe" + (pipes + 1) + "Top"] = {body: pipe1Top, renderer: Pipe2, scored: false}
+    entities["pipe" + (pipes + 2) + "Top"] = {body: pipe2Top, renderer: Pipe2, scored: false}
 
     pipes += 2;
 }
 
 
-const Physics = (entities, {touches, time}) => {
+const Physics = (entities, {touches, time, dispatch }) => {
     let engine = entities.physics.engine;
     let world = entities.physics.world;
     let bird = entities.bird.body;
@@ -89,26 +97,28 @@ const Physics = (entities, {touches, time}) => {
         if (!hadTouches){
             if (world.gravity.y === 0.0){
                 world.gravity.y = 1.2;
-
                 addPipesAtLocation(( Constants.MAX_WIDTH * 1 ) - ( Constants.PIPE_WIDTH / 2 ), world, entities);
                 addPipesAtLocation(( Constants.MAX_WIDTH * 2 ) - ( Constants.PIPE_WIDTH / 2 ), world, entities);
             }
             hadTouches = true;
             Matter.Body.setVelocity(bird,
                 { x: bird.velocity.x,
-                  y: -10
+                y: -10
                 });
-
         }
     });
 
     Matter.Engine.update(engine, time.delta);
 
     Object.keys(entities).forEach(key => { // move the floor & the pipes
-        if (key.indexOf("pipe") === 0){
+        if (key.indexOf("pipe") === 0 && entities.hasOwnProperty(key)){
             Matter.Body.translate(entities[key].body, {x: speed, y: 0});
             
             if (key.indexOf("Top") !== -1 && parseInt(key.replace("pipe", "")) % 2 === 0){
+                if(entities[key].body.position.x <= bird.position.x && !entities[key].scored){ // score counter
+                    entities[key].scored = true;
+                    dispatch({type: "score"});
+                }
                 if (entities[key].body.position.x <= -1 * Constants.PIPE_WIDTH / 2){
                     let pipeIndex = parseInt(key.replace("pipe", ""));
                     delete(entities["pipe" + pipeIndex - 1 + "Top"]);
@@ -129,8 +139,8 @@ const Physics = (entities, {touches, time}) => {
         }
     })
 
-    tick += 1; // animation of bird
-    if (tick % 5 === 0){
+    tick.counter += 1; // animation of bird
+    if (tick.counter % 5 === 0){
         pose = pose + 1;
         if (pose > 4){
             pose = 1
@@ -138,10 +148,21 @@ const Physics = (entities, {touches, time}) => {
     entities.bird.pose = pose;
     }
 
-    // update speed
-    /*if (tick % 100 === 0){
-        speed -= 1;
-    }*/
+    if (tick.counter % 10 === 0){ // update speed
+        speed -= 0.08;
+    }
+
+    if (tick.counter % 500 === 490 || tick.counter % 500 === 491){
+        dispatch({type: "tick"});; // to trigger on event in app.js
+    }
+    if (tick.counter % 500 === 0){ // low gravity
+        world.gravity.y = 0.5;
+    }
+
+    if (tick.counter % 1000 === 0){ // normal gravity
+        world.gravity.y = 1.2;
+    }
+
     return entities;
 }
 
